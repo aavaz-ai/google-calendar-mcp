@@ -3,7 +3,7 @@
 ## Setup
 
 ```bash
-git clone https://github.com/nspady/google-calendar-mcp.git
+git clone https://github.com/aavaz-ai/google-calendar-mcp.git
 cd google-calendar-mcp
 npm install
 npm run build
