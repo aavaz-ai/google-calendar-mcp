@@ -230,14 +230,18 @@ describe('UpdateEventArgumentsSchema with Recurring Event Support', () => {
       '2024-01-01T00:00:00',      // timezone-naive (preferred)
       '2024-06-15T10:00:00Z',     // timezone-aware (accepted)
       '2024-06-15T10:00:00-07:00', // timezone-aware (accepted)
-      '2024-06-15T10:00:00+05:30'  // timezone-aware (accepted)
+      '2024-06-15T10:00:00+05:30', // timezone-aware (accepted)
+      '2024-06-15T10:00:00.123',   // fractional seconds, timezone-naive
+      '2024-06-15T10:00:00.123Z',  // fractional seconds in UTC
+      '2024-06-15T10:00:00.123456+05:30' // arbitrary fractional precision with offset
     ];
 
     const invalidDatetimes = [
       '2024-06-15 10:00:00',     // space instead of T
       '24-06-15T10:00:00',       // short year
       '2024-6-15T10:00:00',      // single digit month
-      '2024-06-15T10:00'         // missing seconds
+      '2024-06-15T10:00',        // missing seconds
+      '2024-06-15T10:00:00.Z'    // fractional separator without digits
     ];
 
     validDatetimes.forEach(datetime => {
@@ -717,4 +721,4 @@ describe('Array parameter JSON string preprocessing', () => {
       expect(result.recurrence).toEqual(['RRULE:FREQ=WEEKLY;COUNT=10', 'EXDATE:20240108T100000']);
     });
   });
-}); 
+});
