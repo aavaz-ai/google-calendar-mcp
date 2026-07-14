@@ -1,8 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ListEventsHandler } from '../../../handlers/core/ListEventsHandler.js';
 import { OAuth2Client } from 'google-auth-library';
 import { google } from 'googleapis';
 import { convertToRFC3339 } from '../../../utils/datetime.js';
+import { BROKER_BEARER_ENV } from '../../../auth/brokerBearer.js';
 
 // Mock googleapis globally
 vi.mock('googleapis', () => ({
@@ -60,6 +61,10 @@ describe('ListEventsHandler JSON String Handling', () => {
       }
     };
     vi.mocked(google.calendar).mockReturnValue(mockCalendar);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   // Mock fetch for batch requests
@@ -130,6 +135,25 @@ Content-Type: application/json
     expect(response.events).toBeDefined();
     expect(response.totalCount).toBeGreaterThanOrEqual(0);
     expect(response.calendars).toEqual(['primary', 'secondary@gmail.com']);
+  });
+
+  it('sanitizes per-calendar batch response bodies in broker mode', () => {
+    vi.stubEnv(BROKER_BEARER_ENV, 'broker-token');
+
+    const result = (handler as any).processBatchResponses(
+      [{
+        statusCode: 403,
+        body: { error: { message: 'provider-batch-sentinel', event: 'private-event-sentinel' } }
+      }],
+      ['primary']
+    );
+
+    expect(result.errors).toEqual([{
+      calendarId: 'primary',
+      error: 'Google Calendar access was denied (HTTP 403).'
+    }]);
+    expect(JSON.stringify(result)).not.toContain('provider-batch-sentinel');
+    expect(JSON.stringify(result)).not.toContain('private-event-sentinel');
   });
 });
 

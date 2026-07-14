@@ -201,15 +201,21 @@ export class ListEventsHandler extends BaseToolHandler {
             path: await this.buildEventsPath(client, calendarId, options)
         })));
         
-        const responses = await batchHandler.executeBatch(requests);
-        
-        const { events, errors } = this.processBatchResponses(responses, calendarIds);
-        
-        if (errors.length > 0) {
-            process.stderr.write(`Some calendars had errors: ${errors.map(e => `${e.calendarId}: ${e.error}`).join(', ')}\n`);
+        try {
+            const responses = await batchHandler.executeBatch(requests);
+            const { events, errors } = this.processBatchResponses(responses, calendarIds);
+
+            if (errors.length > 0) {
+                process.stderr.write(`Some calendars had errors: ${errors.map(e => `${e.calendarId}: ${e.error}`).join(', ')}\n`);
+            }
+
+            return this.sortEventsByStartTime(events);
+        } catch (error) {
+            if (this.isBrokerErrorSanitizationEnabled()) {
+                throw this.handleGoogleApiError(error);
+            }
+            throw error;
         }
-        
-        return this.sortEventsByStartTime(events);
     }
 
     private async buildEventsPath(client: OAuth2Client, calendarId: string, options: { timeMin?: string; timeMax?: string; timeZone?: string; fields?: string[]; privateExtendedProperty?: string[]; sharedExtendedProperty?: string[] }): Promise<string> {
@@ -254,9 +260,10 @@ export class ListEventsHandler extends BaseToolHandler {
                 }));
                 events.push(...calendarEvents);
             } else {
-                const errorMessage = response.body?.error?.message || 
-                                   response.body?.message || 
-                                   `HTTP ${response.statusCode}`;
+                const providerMessage = response.body?.error?.message ||
+                                      response.body?.message ||
+                                      `HTTP ${response.statusCode}`;
+                const errorMessage = this.formatProviderFailureForOutput(response.statusCode, providerMessage);
                 errors.push({ calendarId, error: errorMessage });
             }
         });

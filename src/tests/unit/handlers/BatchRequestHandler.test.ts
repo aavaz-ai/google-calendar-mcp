@@ -4,6 +4,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { OAuth2Client } from 'google-auth-library';
 import { BatchRequestHandler, BatchRequest, BatchResponse } from '../../../handlers/core/BatchRequestHandler.js';
+import { BROKER_ACCOUNT_ID, createBrokerAccount } from '../../../auth/brokerBearer.js';
 
 describe('BatchRequestHandler', () => {
   let mockOAuth2Client: OAuth2Client;
@@ -368,6 +369,30 @@ Content-Type: application/json
         .rejects.toThrow('Failed to execute batch request: Network error');
     });
 
+    it('does not retain provider response or status text in broker-mode failures', async () => {
+      const brokerClient = createBrokerAccount('broker-access-token').get(BROKER_ACCOUNT_ID)!;
+      vi.spyOn(brokerClient, 'getAccessToken').mockResolvedValue({ token: 'broker-access-token' });
+      const brokerHandler = new BatchRequestHandler(brokerClient);
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 403,
+        statusText: 'provider-status-sentinel',
+        text: () => Promise.resolve('{"event":"private-provider-body-sentinel"}')
+      });
+
+      const error = await brokerHandler.executeBatch([{
+        method: 'GET',
+        path: '/calendar/v3/calendars/primary/events'
+      }]).catch((caught) => caught);
+      const serialized = `${String(error)} ${JSON.stringify(error)}`;
+
+      expect(serialized).toContain('Google Calendar batch request failed (HTTP 403)');
+      expect(serialized).not.toContain('provider-status-sentinel');
+      expect(serialized).not.toContain('private-provider-body-sentinel');
+      expect(serialized).not.toContain('broker-access-token');
+    });
+
     it('should handle authentication errors', async () => {
       mockOAuth2Client.getAccessToken = vi.fn().mockRejectedValue(
         new Error('Authentication failed')
@@ -384,4 +409,4 @@ Content-Type: application/json
         .rejects.toThrow('Authentication failed');
     });
   });
-}); 
+});

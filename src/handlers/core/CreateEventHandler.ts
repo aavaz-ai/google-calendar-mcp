@@ -71,6 +71,12 @@ export class CreateEventHandler extends BaseToolHandler {
         );
 
         if (exactDuplicate && validArgs.allowDuplicates !== true) {
+            if (this.isBrokerErrorSanitizationEnabled()) {
+                throw new McpError(
+                    ErrorCode.InvalidRequest,
+                    'Duplicate event detected. Set allowDuplicates to true to create it anyway.'
+                );
+            }
             // Throw an error that will be handled by MCP SDK
             throw new Error(
                 `Duplicate event detected (${Math.round(exactDuplicate.event.similarity * 100)}% similar). ` +
@@ -161,7 +167,8 @@ export class CreateEventHandler extends BaseToolHandler {
             return response.data;
         } catch (error: any) {
             // Handle ID conflict errors specifically
-            if (error?.code === 409 || error?.response?.status === 409) {
+            if ((error?.code === 409 || error?.response?.status === 409) &&
+                !this.isBrokerErrorSanitizationEnabled()) {
                 throw new Error(`Event ID '${args.eventId}' already exists. Please use a different ID.`);
             }
             throw this.handleGoogleApiError(error);
