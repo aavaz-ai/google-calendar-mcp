@@ -38,14 +38,21 @@ export class UpdateEventHandler extends BaseToolHandler {
 
         let existingEvent: calendar_v3.Schema$Event | null = null;
         if (needsExistingEvent) {
-            const existingEventResponse = await calendar.events.get({
-                calendarId: resolvedCalendarId,
-                eventId: validArgs.eventId
-            });
-            existingEvent = existingEventResponse.data;
+            try {
+                const existingEventResponse = await calendar.events.get({
+                    calendarId: resolvedCalendarId,
+                    eventId: validArgs.eventId
+                });
+                existingEvent = existingEventResponse.data;
 
-            if (!existingEvent) {
-                throw new Error('Event not found');
+                if (!existingEvent) {
+                    throw new Error('Event not found');
+                }
+            } catch (error) {
+                if (this.isBrokerErrorSanitizationEnabled()) {
+                    throw this.handleGoogleApiError(error);
+                }
+                throw error;
             }
         }
 
@@ -174,6 +181,7 @@ export class UpdateEventHandler extends BaseToolHandler {
             calendarId: args.calendarId,
             eventId: instanceId,
             requestBody,
+            ...(args.sendUpdates !== undefined && { sendUpdates: args.sendUpdates }),
             ...(conferenceDataVersion && { conferenceDataVersion }),
             ...(supportsAttachments && { supportsAttachments })
         });
@@ -197,6 +205,7 @@ export class UpdateEventHandler extends BaseToolHandler {
             calendarId: args.calendarId,
             eventId: args.eventId,
             requestBody,
+            ...(args.sendUpdates !== undefined && { sendUpdates: args.sendUpdates }),
             ...(conferenceDataVersion && { conferenceDataVersion }),
             ...(supportsAttachments && { supportsAttachments })
         });
@@ -238,7 +247,8 @@ export class UpdateEventHandler extends BaseToolHandler {
         await calendar.events.patch({
             calendarId: args.calendarId,
             eventId: args.eventId,
-            requestBody: { recurrence: updatedRecurrence }
+            requestBody: { recurrence: updatedRecurrence },
+            ...(args.sendUpdates !== undefined && { sendUpdates: args.sendUpdates })
         });
 
         // 3. Create new recurring event starting from future date
@@ -270,6 +280,7 @@ export class UpdateEventHandler extends BaseToolHandler {
         const response = await calendar.events.insert({
             calendarId: args.calendarId,
             requestBody: newEvent,
+            ...(args.sendUpdates !== undefined && { sendUpdates: args.sendUpdates }),
             ...(conferenceDataVersion && { conferenceDataVersion }),
             ...(supportsAttachments && { supportsAttachments })
         });
