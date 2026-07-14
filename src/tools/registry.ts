@@ -26,8 +26,8 @@ import { RespondToEventHandler } from "../handlers/core/RespondToEventHandler.js
 // generation in JSON schema output, which can cause issues with some MCP clients.
 
 // ISO 8601 datetime regex patterns
-const ISO_DATETIME_WITH_TZ = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|[+-]\d{2}:\d{2})$/;
-const ISO_DATETIME_WITHOUT_TZ = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/;
+const ISO_DATETIME_WITH_TZ = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
+const ISO_DATETIME_WITHOUT_TZ = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?$/;
 const ISO_DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 
 // Validation functions

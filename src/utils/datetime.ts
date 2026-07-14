@@ -9,7 +9,7 @@
  * @returns True if timezone is included, false if timezone-naive
  */
 export function hasTimezoneInDatetime(datetime: string): boolean {
-    return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|[+-]\d{2}:\d{2})$/.test(datetime);
+    return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(Z|[+-]\d{2}:\d{2})$/.test(datetime);
 }
 
 /**
@@ -31,12 +31,14 @@ export function convertToRFC3339(datetime: string, fallbackTimezone: string): st
         // Timezone-naive, interpret as local time in fallbackTimezone and convert to UTC
         try {
             // Parse the datetime components
-            const match = datetime.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})$/);
+            const match = datetime.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(\.\d+)?$/);
             if (!match) {
                 throw new Error('Invalid datetime format');
             }
             
-            const [, year, month, day, hour, minute, second] = match.map(Number);
+            const [, yearText, monthText, dayText, hourText, minuteText, secondText, fractionalSecond] = match;
+            const [year, month, day, hour, minute, second] =
+                [yearText, monthText, dayText, hourText, minuteText, secondText].map(Number);
             
             // Create a temporary date in UTC to get the baseline
             const utcDate = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
@@ -45,7 +47,10 @@ export function convertToRFC3339(datetime: string, fallbackTimezone: string): st
             // We do this by binary search approach or by using the timezone offset
             const targetDate = convertLocalTimeToUTC(year, month - 1, day, hour, minute, second, fallbackTimezone);
             
-            return targetDate.toISOString().replace(/\.000Z$/, 'Z');
+            const iso = targetDate.toISOString();
+            return fractionalSecond
+                ? iso.replace(/\.000Z$/, `${fractionalSecond}Z`)
+                : iso.replace(/\.000Z$/, 'Z');
         } catch (error) {
             // Fallback: if timezone conversion fails, append Z for UTC
             return datetime + 'Z';

@@ -7,6 +7,8 @@ describe('Datetime Utilities', () => {
       expect(hasTimezoneInDatetime('2024-01-01T10:00:00Z')).toBe(true);
       expect(hasTimezoneInDatetime('2024-01-01T10:00:00+05:00')).toBe(true);
       expect(hasTimezoneInDatetime('2024-01-01T10:00:00-08:00')).toBe(true);
+      expect(hasTimezoneInDatetime('2024-01-01T10:00:00.123Z')).toBe(true);
+      expect(hasTimezoneInDatetime('2024-01-01T10:00:00.123456+05:00')).toBe(true);
     });
 
     it('should return false for timezone-naive datetime strings', () => {
@@ -26,6 +28,11 @@ describe('Datetime Utilities', () => {
       expect(convertToRFC3339(datetime, 'America/Los_Angeles')).toBe(datetime);
     });
 
+    it('should return timezone-aware datetime with fractional seconds unchanged', () => {
+      const datetime = '2024-01-01T10:00:00.123456Z';
+      expect(convertToRFC3339(datetime, 'America/Los_Angeles')).toBe(datetime);
+    });
+
     it('should convert timezone-naive datetime using fallback timezone', () => {
       const datetime = '2024-06-15T14:30:00';
       const result = convertToRFC3339(datetime, 'UTC');
@@ -33,6 +40,11 @@ describe('Datetime Utilities', () => {
       // Should result in a timezone-aware string (the exact time depends on system timezone)
       expect(result).toMatch(/2024-06-15T\d{2}:\d{2}:\d{2}Z/);
       expect(result).not.toBe(datetime); // Should be different from input
+    });
+
+    it('should preserve fractional seconds when converting a timezone-naive datetime', () => {
+      expect(convertToRFC3339('2024-01-01T10:00:00.123456', 'UTC'))
+        .toBe('2024-01-01T10:00:00.123456Z');
     });
 
     it('should fallback to UTC for invalid timezone conversion', () => {

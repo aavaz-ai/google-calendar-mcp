@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { GetCurrentTimeHandler } from '../../../handlers/core/GetCurrentTimeHandler.js';
 import { OAuth2Client } from 'google-auth-library';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+import { ToolSchemas } from '../../../tools/registry.js';
 
 describe('GetCurrentTimeHandler', () => {
   const mockOAuth2Client = {
@@ -206,6 +207,24 @@ describe('GetCurrentTimeHandler', () => {
       expect(response.currentTime).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}([+-]\d{2}:\d{2}|Z)$/);
       // Offset should be in the format +HH:MM, -HH:MM, or Z
       expect(response.offset).toMatch(/^([+-]\d{2}:\d{2}|Z)$/);
+    });
+
+    it('should emit a timestamp accepted directly by every broker date-time tool schema', async () => {
+      const handler = new GetCurrentTimeHandler();
+      const result = await handler.runTool({ timeZone: 'UTC' }, mockAccounts);
+      const { currentTime } = JSON.parse(result.content[0].text as string);
+
+      const chainedInputs = [
+        ['list-events', { calendarId: 'primary', timeMin: currentTime, timeMax: currentTime }],
+        ['search-events', { calendarId: 'primary', query: 'meeting', timeMin: currentTime, timeMax: currentTime }],
+        ['create-event', { calendarId: 'primary', summary: 'Test', start: currentTime, end: currentTime }],
+        ['update-event', { calendarId: 'primary', eventId: 'event-id', start: currentTime, end: currentTime }],
+        ['get-freebusy', { calendars: [{ id: 'primary' }], timeMin: currentTime, timeMax: currentTime }]
+      ] as const;
+
+      for (const [toolName, args] of chainedInputs) {
+        expect(ToolSchemas[toolName].safeParse(args).success, toolName).toBe(true);
+      }
     });
   });
 });
