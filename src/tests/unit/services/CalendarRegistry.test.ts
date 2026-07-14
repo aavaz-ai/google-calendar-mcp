@@ -2,12 +2,22 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { CalendarRegistry } from '../../../services/CalendarRegistry.js';
 import { OAuth2Client } from 'google-auth-library';
 import { google } from 'googleapis';
+import { BROKER_ACCOUNT_ID, createBrokerAccount } from '../../../auth/brokerBearer.js';
+
+const state = vi.hoisted(() => ({
+  calendar: vi.fn(),
+  getCredentialsProjectId: vi.fn()
+}));
 
 // Mock googleapis
 vi.mock('googleapis', () => ({
   google: {
-    calendar: vi.fn()
+    calendar: state.calendar
   }
+}));
+
+vi.mock('../../../auth/utils.js', () => ({
+  getCredentialsProjectId: state.getCredentialsProjectId
 }));
 
 describe('CalendarRegistry', () => {
@@ -17,6 +27,8 @@ describe('CalendarRegistry', () => {
   let accounts: Map<string, OAuth2Client>;
 
   beforeEach(() => {
+    vi.clearAllMocks();
+    state.getCredentialsProjectId.mockReturnValue('interactive-quota-project');
     // Reset singleton instance to ensure clean state for each test
     CalendarRegistry.resetInstance();
     registry = CalendarRegistry.getInstance();
@@ -51,6 +63,32 @@ describe('CalendarRegistry', () => {
   });
 
   describe('getUnifiedCalendars', () => {
+    it('does not read legacy OAuth credentials for broker-backed registry requests', async () => {
+      vi.mocked(google.calendar).mockReturnValue({
+        calendarList: { list: vi.fn().mockResolvedValue({ data: { items: [] } }) }
+      } as any);
+      const brokerAccounts = createBrokerAccount('broker-access-token');
+
+      await registry.getUnifiedCalendars(brokerAccounts);
+
+      expect([...brokerAccounts.keys()]).toEqual([BROKER_ACCOUNT_ID]);
+      expect(state.getCredentialsProjectId).not.toHaveBeenCalled();
+      expect(state.calendar.mock.calls[0][0]).not.toHaveProperty('quotaProjectId');
+    });
+
+    it('preserves quota project lookup for interactive registry requests', async () => {
+      vi.mocked(google.calendar).mockReturnValue({
+        calendarList: { list: vi.fn().mockResolvedValue({ data: { items: [] } }) }
+      } as any);
+
+      await registry.getUnifiedCalendars(new Map([['work', workClient]]));
+
+      expect(state.getCredentialsProjectId).toHaveBeenCalledTimes(1);
+      expect(state.calendar).toHaveBeenCalledWith(expect.objectContaining({
+        quotaProjectId: 'interactive-quota-project'
+      }));
+    });
+
     it('should deduplicate calendars across accounts', async () => {
       // Mock calendar list responses
       const mockWorkCalendar = vi.fn().mockResolvedValue({

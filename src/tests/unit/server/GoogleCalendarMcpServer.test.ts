@@ -7,6 +7,8 @@ const state = vi.hoisted(() => ({
   oauthClient: { id: 'oauth-client' } as any,
   tokenManagerInstance: undefined as any,
   authServerInstance: undefined as any,
+  tokenManagerConstruct: vi.fn(),
+  authServerConstruct: vi.fn(),
   initializeOAuth2Client: vi.fn(async () => ({ id: 'oauth-client' })),
   tokenManagerLoadAllAccounts: vi.fn(async () => new Map()),
   tokenManagerGetAccountMode: vi.fn(() => 'normal'),
@@ -23,6 +25,9 @@ const state = vi.hoisted(() => ({
   httpConnect: vi.fn(async () => undefined),
   processOn: vi.fn(process.on.bind(process)),
   calendarRegistryGetUnifiedCalendars: vi.fn(async () => [] as Array<Record<string, unknown>>),
+  readBrokerBearer: vi.fn(() => undefined as string | undefined),
+  createBrokerAccount: vi.fn(() => new Map([['default', { id: 'broker-oauth-client' } as any]])),
+  probeBrokerCalendarAccess: vi.fn(async () => undefined),
 }));
 
 vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => ({
@@ -47,6 +52,7 @@ vi.mock('../../../auth/client.js', () => ({
 vi.mock('../../../auth/tokenManager.js', () => ({
   TokenManager: class MockTokenManager {
     constructor(_oauthClient: any) {
+      state.tokenManagerConstruct(_oauthClient);
       state.tokenManagerInstance = this;
     }
     loadAllAccounts = state.tokenManagerLoadAllAccounts;
@@ -60,11 +66,30 @@ vi.mock('../../../auth/server.js', () => ({
   AuthServer: class MockAuthServer {
     authCompletedSuccessfully = false;
     constructor(_oauthClient: any) {
+      state.authServerConstruct(_oauthClient);
       state.authServerInstance = this;
     }
     start = state.authServerStart;
     stop = state.authServerStop;
   }
+}));
+
+vi.mock('../../../auth/brokerBearer.js', () => ({
+  BROKER_ENABLED_TOOLS: [
+    'list-calendars',
+    'list-events',
+    'search-events',
+    'get-event',
+    'create-event',
+    'update-event',
+    'delete-event',
+    'get-freebusy',
+    'get-current-time',
+    'respond-to-event'
+  ],
+  readBrokerBearer: state.readBrokerBearer,
+  createBrokerAccount: state.createBrokerAccount,
+  probeBrokerCalendarAccess: state.probeBrokerCalendarAccess
 }));
 
 vi.mock('../../../tools/registry.js', () => ({
@@ -118,6 +143,9 @@ describe('GoogleCalendarMcpServer', () => {
     state.stdioConnect.mockResolvedValue(undefined);
     state.httpConnect.mockResolvedValue(undefined);
     state.calendarRegistryGetUnifiedCalendars.mockResolvedValue([]);
+    state.readBrokerBearer.mockReturnValue(undefined);
+    state.createBrokerAccount.mockReturnValue(new Map([['default', { id: 'broker-oauth-client' } as any]]));
+    state.probeBrokerCalendarAccess.mockResolvedValue(undefined);
     process.env.NODE_ENV = 'test';
     vi.spyOn(process, 'on').mockImplementation(state.processOn as any);
   });
@@ -131,6 +159,8 @@ describe('GoogleCalendarMcpServer', () => {
     await server.initialize();
 
     expect(state.initializeOAuth2Client).toHaveBeenCalledTimes(1);
+    expect(state.tokenManagerConstruct).toHaveBeenCalledTimes(1);
+    expect(state.authServerConstruct).toHaveBeenCalledTimes(1);
     expect(state.tokenManagerLoadAllAccounts).toHaveBeenCalledTimes(1);
     expect(state.toolRegistryRegisterAll).toHaveBeenCalledTimes(1);
     expect(state.mcpServerInstance.tool).not.toHaveBeenCalled();
@@ -189,6 +219,79 @@ describe('GoogleCalendarMcpServer', () => {
     await server.initialize();
 
     expect(state.tokenManagerValidateTokens).not.toHaveBeenCalled();
+  });
+
+  it('uses the broker bearer without initializing interactive OAuth or account management', async () => {
+    state.readBrokerBearer.mockReturnValue('broker-access-token');
+
+    const server = new GoogleCalendarMcpServer({
+      transport: { type: 'stdio' },
+      debug: false
+    } as any);
+
+    await server.initialize();
+
+    expect(state.createBrokerAccount).toHaveBeenCalledWith('broker-access-token');
+    expect(state.probeBrokerCalendarAccess).toHaveBeenCalledTimes(1);
+    expect(state.initializeOAuth2Client).not.toHaveBeenCalled();
+    expect(state.tokenManagerConstruct).not.toHaveBeenCalled();
+    expect(state.authServerConstruct).not.toHaveBeenCalled();
+    expect(state.tokenManagerLoadAllAccounts).not.toHaveBeenCalled();
+    expect(state.registerTool).not.toHaveBeenCalled();
+    expect(state.toolRegistryRegisterAll).toHaveBeenCalledWith(
+      state.mcpServerInstance,
+      expect.any(Function),
+      expect.objectContaining({
+        enabledTools: [
+          'list-calendars',
+          'list-events',
+          'search-events',
+          'get-event',
+          'create-event',
+          'update-event',
+          'delete-event',
+          'get-freebusy',
+          'get-current-time',
+          'respond-to-event'
+        ]
+      })
+    );
+  });
+
+  it('does not fall back to interactive OAuth when broker configuration is invalid', async () => {
+    state.readBrokerBearer.mockImplementationOnce(() => {
+      throw new Error('GOOGLE_CALENDAR_OAUTH_BEARER is present but empty');
+    });
+
+    const server = new GoogleCalendarMcpServer({
+      transport: { type: 'stdio' },
+      debug: false
+    } as any);
+
+    await expect(server.initialize()).rejects.toThrow(
+      'GOOGLE_CALENDAR_OAUTH_BEARER is present but empty'
+    );
+
+    expect(state.initializeOAuth2Client).not.toHaveBeenCalled();
+    expect(state.tokenManagerConstruct).not.toHaveBeenCalled();
+    expect(state.authServerConstruct).not.toHaveBeenCalled();
+    expect(state.createBrokerAccount).not.toHaveBeenCalled();
+    expect(state.probeBrokerCalendarAccess).not.toHaveBeenCalled();
+  });
+
+  it('rejects broker bearer mode over HTTP before starting a server', async () => {
+    state.readBrokerBearer.mockReturnValue('broker-access-token');
+    const server = new GoogleCalendarMcpServer({
+      transport: { type: 'http', host: '127.0.0.1', port: 3000 },
+      debug: false
+    } as any);
+
+    await expect(server.initialize()).rejects.toThrow(
+      'Broker-supplied Google Calendar tokens are supported only with stdio transport'
+    );
+
+    expect(state.createBrokerAccount).not.toHaveBeenCalled();
+    expect(state.httpConnect).not.toHaveBeenCalled();
   });
 
   it('starts stdio transport when configured', async () => {

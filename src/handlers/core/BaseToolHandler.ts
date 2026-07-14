@@ -2,6 +2,7 @@ import { CallToolResult, McpError, ErrorCode } from "@modelcontextprotocol/sdk/t
 import { OAuth2Client } from "google-auth-library";
 import { GaxiosError } from 'gaxios';
 import { calendar_v3, google } from "googleapis";
+import { isBrokerBearerMode, isBrokerOAuthClient } from "../../auth/brokerBearer.js";
 import { getCredentialsProjectId } from "../../auth/utils.js";
 import { CalendarRegistry } from "../../services/CalendarRegistry.js";
 import { validateAccountId } from "../../auth/paths.js";
@@ -338,7 +339,64 @@ export abstract class BaseToolHandler<TArgs = any> {
         return 'Unknown error';
     }
 
+    protected isBrokerErrorSanitizationEnabled(): boolean {
+        return isBrokerBearerMode();
+    }
+
+    private extractProviderStatus(error: unknown): number | undefined {
+        if (typeof error !== 'object' || error === null) {
+            return undefined;
+        }
+
+        const candidate = error as {
+            response?: { status?: unknown };
+            status?: unknown;
+            code?: unknown;
+        };
+        const statuses = [candidate.response?.status, candidate.status, candidate.code];
+        return statuses.find((status): status is number =>
+            typeof status === 'number' && Number.isInteger(status)
+        );
+    }
+
+    private getBrokerProviderFailure(status: number | undefined): { code: ErrorCode; message: string } {
+        switch (status) {
+            case 400:
+                return { code: ErrorCode.InvalidRequest, message: 'Google Calendar rejected the request (HTTP 400).' };
+            case 401:
+                return { code: ErrorCode.InvalidRequest, message: 'Google Calendar authentication failed (HTTP 401).' };
+            case 403:
+                return { code: ErrorCode.InvalidRequest, message: 'Google Calendar access was denied (HTTP 403).' };
+            case 404:
+                return { code: ErrorCode.InvalidRequest, message: 'Google Calendar resource was not found (HTTP 404).' };
+            case 409:
+                return { code: ErrorCode.InvalidRequest, message: 'Google Calendar update conflicted with the current resource state (HTTP 409).' };
+            case 429:
+                return { code: ErrorCode.InternalError, message: 'Google Calendar rate limit was exceeded (HTTP 429).' };
+            default:
+                if (status !== undefined && status >= 400 && status < 500) {
+                    return { code: ErrorCode.InvalidRequest, message: `Google Calendar rejected the request (HTTP ${status}).` };
+                }
+                if (status !== undefined) {
+                    return { code: ErrorCode.InternalError, message: `Google Calendar request failed (HTTP ${status}).` };
+                }
+                return { code: ErrorCode.InternalError, message: 'Google Calendar request failed.' };
+        }
+    }
+
+    protected formatProviderFailureForOutput(status: number | undefined, providerMessage: string): string {
+        if (!this.isBrokerErrorSanitizationEnabled()) {
+            return providerMessage;
+        }
+        return this.getBrokerProviderFailure(status).message;
+    }
+
     protected handleGoogleApiError(error: unknown): never {
+        if (this.isBrokerErrorSanitizationEnabled()) {
+            const failure = this.getBrokerProviderFailure(this.extractProviderStatus(error));
+            throw new McpError(failure.code, failure.message);
+        }
+
         if (error instanceof GaxiosError) {
             const status = error.response?.status;
             const errorData = error.response?.data;
@@ -452,8 +510,8 @@ Original error: ${errorMessage}`
     }
 
     protected getCalendar(auth: OAuth2Client): calendar_v3.Calendar {
-        // Try to get project ID from credentials file for quota project header
-        const quotaProjectId = getCredentialsProjectId();
+        // Broker mode is env-only and must not consult legacy credential files.
+        const quotaProjectId = isBrokerOAuthClient(auth) ? undefined : getCredentialsProjectId();
 
         const config: any = {
             version: 'v3',
@@ -626,6 +684,13 @@ Original error: ${errorMessage}`
                 return match.id;
             }
 
+            if (this.isBrokerErrorSanitizationEnabled()) {
+                throw new McpError(
+                    ErrorCode.InvalidRequest,
+                    "Requested calendar was not found. Use 'list-calendars' to see available calendars."
+                );
+            }
+
             // Calendar name not found - provide helpful error message showing both summary and override
             const availableCalendars = calendars
                 .map(cal => {
@@ -669,6 +734,13 @@ Original error: ${errorMessage}`
         requestedCalendars: string[],
         selectedAccounts: Map<string, OAuth2Client>
     ): Promise<never> {
+        if (this.isBrokerErrorSanitizationEnabled()) {
+            throw new McpError(
+                ErrorCode.InvalidRequest,
+                "Requested calendar was not found. Use 'list-calendars' to see available calendars."
+            );
+        }
+
         const allCalendars = await this.calendarRegistry.getUnifiedCalendars(selectedAccounts);
         const calendarList = allCalendars.map(c => `"${c.displayName}" (${c.calendarId})`).join(', ');
         throw new McpError(
@@ -779,6 +851,13 @@ Original error: ${errorMessage}`
 
         // If any calendars couldn't be resolved, throw error with helpful message
         if (errors.length > 0) {
+            if (this.isBrokerErrorSanitizationEnabled()) {
+                throw new McpError(
+                    ErrorCode.InvalidRequest,
+                    "Requested calendar was not found. Use 'list-calendars' to see available calendars."
+                );
+            }
+
             const availableCalendars = calendars
                 .map(cal => {
                     if (cal.summaryOverride && cal.summaryOverride !== cal.summary) {

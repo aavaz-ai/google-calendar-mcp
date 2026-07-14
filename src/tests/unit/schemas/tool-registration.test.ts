@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ToolRegistry, ToolSchemas } from '../../../tools/registry.js';
+import { BROKER_ENABLED_TOOLS } from '../../../auth/brokerBearer.js';
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 /**
@@ -50,6 +51,23 @@ describe('Tool Registration', () => {
     
     const expectedToolCount = Object.keys(ToolSchemas).length;
     expect(registeredTools).toHaveLength(expectedToolCount);
+  });
+
+  it('registers the exact fixed broker tool surface', async () => {
+    await ToolRegistry.registerAll(
+      mockServer,
+      async () => ({ content: [] }),
+      {
+        transport: { type: 'stdio' },
+        enabledTools: [...BROKER_ENABLED_TOOLS]
+      }
+    );
+
+    expect(registeredTools.map((tool) => tool.name)).toEqual([...BROKER_ENABLED_TOOLS]);
+    expect(registeredTools).toHaveLength(10);
+    expect(registeredTools.map((tool) => tool.name)).not.toContain('list-colors');
+    expect(registeredTools.map((tool) => tool.name)).not.toContain('create-events');
+    expect(registeredTools.map((tool) => tool.name)).not.toContain('manage-accounts');
   });
 
   it('should register all expected tool names', async () => {
