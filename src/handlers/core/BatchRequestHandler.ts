@@ -1,4 +1,5 @@
 import { OAuth2Client } from "google-auth-library";
+import { isBrokerOAuthClient } from "../../auth/brokerBearer.js";
 
 export interface BatchRequest {
   method: string;
@@ -37,9 +38,11 @@ export class BatchRequestHandler {
   private readonly boundary: string;
   private readonly maxRetries = 3;
   private readonly baseDelay = 1000; // 1 second
+  private readonly brokerMode: boolean;
 
   constructor(private auth: OAuth2Client) {
     this.boundary = "batch_boundary_" + Date.now();
+    this.brokerMode = isBrokerOAuthClient(auth);
   }
 
   async executeBatch(requests: BatchRequest[]): Promise<BatchResponse[]> {
@@ -82,11 +85,15 @@ export class BatchRequestHandler {
 
       if (!response.ok) {
         throw new BatchRequestError(
-          `Batch request failed: ${response.status} ${response.statusText}`,
+          this.brokerMode
+            ? `Google Calendar batch request failed (HTTP ${response.status})`
+            : `Batch request failed: ${response.status} ${response.statusText}`,
           [{
             statusCode: response.status,
-            message: `HTTP ${response.status}: ${response.statusText}`,
-            details: responseText
+            message: this.brokerMode
+              ? `Google Calendar batch request failed (HTTP ${response.status})`
+              : `HTTP ${response.status}: ${response.statusText}`,
+            details: this.brokerMode ? undefined : responseText
           }]
         );
       }
@@ -100,18 +107,25 @@ export class BatchRequestHandler {
       // Retry on network errors
       if (attempt < this.maxRetries && this.isRetryableError(error)) {
         const delay = this.baseDelay * Math.pow(2, attempt);
-        process.stderr.write(`Network error, retrying after ${delay}ms (attempt ${attempt + 1}/${this.maxRetries}): ${error instanceof Error ? error.message : 'Unknown error'}\n`);
+        const errorDetail = this.brokerMode
+          ? ''
+          : `: ${error instanceof Error ? error.message : 'Unknown error'}`;
+        process.stderr.write(`Network error, retrying after ${delay}ms (attempt ${attempt + 1}/${this.maxRetries})${errorDetail}\n`);
         await this.sleep(delay);
         return this.executeBatchWithRetry(requests, attempt + 1);
       }
       
       // Handle network or auth errors
       throw new BatchRequestError(
-        `Failed to execute batch request: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        this.brokerMode
+          ? 'Failed to execute Google Calendar batch request'
+          : `Failed to execute batch request: ${error instanceof Error ? error.message : 'Unknown error'}`,
         [{
           statusCode: 0,
-          message: error instanceof Error ? error.message : 'Unknown error',
-          details: error
+          message: this.brokerMode
+            ? 'Google Calendar batch request failed'
+            : error instanceof Error ? error.message : 'Unknown error',
+          details: this.brokerMode ? undefined : error
         }]
       );
     }
@@ -283,4 +297,4 @@ export class BatchRequestHandler {
       body
     };
   }
-} 
+}

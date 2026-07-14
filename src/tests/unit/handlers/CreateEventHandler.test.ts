@@ -1,7 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { CreateEventHandler } from '../../../handlers/core/CreateEventHandler.js';
 import { OAuth2Client } from 'google-auth-library';
+import { McpError } from '@modelcontextprotocol/sdk/types.js';
 import { CalendarRegistry } from '../../../services/CalendarRegistry.js';
+import { BROKER_BEARER_ENV } from '../../../auth/brokerBearer.js';
 
 // Mock the googleapis module
 vi.mock('googleapis', () => ({
@@ -78,6 +80,10 @@ describe('CreateEventHandler', () => {
       calendarId: 'primary',
       wasAutoSelected: true
     });
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   describe('Basic Event Creation', () => {
@@ -279,6 +285,47 @@ describe('CreateEventHandler', () => {
       await expect(handler.runTool(args, mockAccounts)).rejects.toThrow(
         "Event ID 'existing-event' already exists. Please use a different ID."
       );
+    });
+
+    it('should sanitize event ID conflicts in broker mode', async () => {
+      vi.stubEnv(BROKER_BEARER_ENV, 'broker-token');
+      const conflictError = new Error('provider-conflict-sentinel');
+      (conflictError as any).response = { status: 409, data: { event: 'private-event-sentinel' } };
+      mockCalendar.events.insert.mockRejectedValue(conflictError);
+
+      const error = await handler.runTool({
+        calendarId: 'primary',
+        eventId: 'private-event-id',
+        summary: 'Test Event',
+        start: '2025-01-15T10:00:00',
+        end: '2025-01-15T11:00:00'
+      }, mockAccounts).catch((caught) => caught);
+
+      expect(error).toBeInstanceOf(McpError);
+      expect(error.message).toContain('Google Calendar update conflicted with the current resource state (HTTP 409).');
+      expect(String(error)).not.toContain('private-event-id');
+      expect(String(error)).not.toContain('provider-conflict-sentinel');
+      expect(JSON.stringify(error)).not.toContain('private-event-sentinel');
+    });
+
+    it('should not return duplicate event data in broker mode', async () => {
+      vi.stubEnv(BROKER_BEARER_ENV, 'broker-token');
+      vi.spyOn((handler as any).conflictDetectionService, 'checkConflicts').mockResolvedValue({
+        hasConflicts: true,
+        conflicts: [],
+        duplicates: [{ event: { similarity: 1, title: 'private-event-title-sentinel' } }]
+      });
+
+      const error = await handler.runTool({
+        calendarId: 'primary',
+        summary: 'New Event',
+        start: '2025-01-15T10:00:00',
+        end: '2025-01-15T11:00:00'
+      }, mockAccounts).catch((caught) => caught);
+
+      expect(error).toBeInstanceOf(McpError);
+      expect(error.message).toContain('Duplicate event detected. Set allowDuplicates to true to create it anyway.');
+      expect(String(error)).not.toContain('private-event-title-sentinel');
     });
   });
 
