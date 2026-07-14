@@ -29,7 +29,7 @@ Full CI pipeline with multiple jobs running in parallel/sequence:
    - Uploads build artifacts
 
 3. **unit-tests**:
-   - Runs on multiple Node.js versions (18, 20)
+   - Runs on Node.js 22, matching the Enterpret Agent runtime
    - Executes all unit tests
    - Runs schema compatibility tests
 
