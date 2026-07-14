@@ -96,7 +96,7 @@ function showHelp(): void {
 Google Calendar MCP Server v${VERSION}
 
 Usage:
-  npx @cocal/google-calendar-mcp [command] [options]
+  npx @enterpret/google-calendar-mcp [command] [options]
 
 Commands:
   auth [account-id]  Run the authentication flow
@@ -109,15 +109,16 @@ Options:
   --enable-tools <list>   Comma-separated list of tools to enable (whitelist)
 
 Examples:
-  npx @cocal/google-calendar-mcp auth              # Authenticate default account
-  npx @cocal/google-calendar-mcp auth work         # Authenticate "work" account
-  npx @cocal/google-calendar-mcp start
-  npx @cocal/google-calendar-mcp start --enable-tools list-events,create-event,get-current-time
-  npx @cocal/google-calendar-mcp
+  npx @enterpret/google-calendar-mcp auth              # Authenticate default account
+  npx @enterpret/google-calendar-mcp auth work         # Authenticate "work" account
+  npx @enterpret/google-calendar-mcp start
+  npx @enterpret/google-calendar-mcp start --enable-tools list-events,create-event,get-current-time
+  npx @enterpret/google-calendar-mcp
 
 Environment Variables:
   GOOGLE_OAUTH_CREDENTIALS    Path to OAuth credentials file
   GOOGLE_ACCOUNT_MODE         Account ID to use (alternative to auth argument)
+  GOOGLE_CALENDAR_OAUTH_BEARER Broker-supplied access token; enables headless stdio mode
   ENABLED_TOOLS               Comma-separated list of tools to enable
 `);
 }

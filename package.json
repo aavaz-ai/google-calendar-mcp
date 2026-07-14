@@ -1,7 +1,7 @@
 {
-  "name": "@cocal/google-calendar-mcp",
-  "version": "2.6.2",
-  "description": "Google Calendar MCP Server with extensive support for calendar management",
+  "name": "@enterpret/google-calendar-mcp",
+  "version": "0.1.0",
+  "description": "Enterpret fork of the Google Calendar MCP server with broker-supplied OAuth bearer support",
   "type": "module",
   "main": "build/index.js",
   "bin": {
@@ -24,14 +24,20 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/nspady/google-calendar-mcp.git"
+    "url": "git+https://github.com/aavaz-ai/google-calendar-mcp.git"
   },
   "bugs": {
-    "url": "https://github.com/nspady/google-calendar-mcp/issues"
+    "url": "https://github.com/aavaz-ai/google-calendar-mcp/issues"
   },
-  "homepage": "https://github.com/nspady/google-calendar-mcp#readme",
+  "homepage": "https://github.com/aavaz-ai/google-calendar-mcp#readme",
   "author": "nspady",
   "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "start": "node build/index.js",
     "build": "node scripts/build.js",
@@ -57,7 +63,7 @@
     "analyze:tokens:compare": "npx tsx scripts/analyze-tool-descriptions.ts compare --output markdown"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.27.0",
+    "@modelcontextprotocol/sdk": "1.29.0",
     "gaxios": "^7.1.3",
     "google-auth-library": "^10.5.0",
     "googleapis": "^171.4.0",
@@ -68,7 +74,7 @@
     "@anthropic-ai/sdk": "^0.78.0",
     "@types/node": "^22.19.11",
     "@vitest/coverage-v8": "^4.0.18",
-    "esbuild": "^0.27.2",
+    "esbuild": "0.28.1",
     "js-tiktoken": "^1.0.21",
     "openai": "^6.22.0",
     "typescript": "^5.3.3",
