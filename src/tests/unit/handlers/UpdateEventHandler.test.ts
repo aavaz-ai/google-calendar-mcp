@@ -1,9 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { UpdateEventHandler } from '../../../handlers/core/UpdateEventHandler.js';
 import { OAuth2Client } from 'google-auth-library';
-import type { UpdateEventInput } from '../../../tools/registry.js';
+import { McpError } from '@modelcontextprotocol/sdk/types.js';
+import { ToolSchemas, type UpdateEventInput } from '../../../tools/registry.js';
 import type { RecurringEventHelpers } from '../../../handlers/core/RecurringEventHelpers.js';
 import { CalendarRegistry } from '../../../services/CalendarRegistry.js';
+import { BROKER_BEARER_ENV } from '../../../auth/brokerBearer.js';
 
 // Mock the googleapis module
 vi.mock('googleapis', () => ({
@@ -126,6 +128,10 @@ describe('UpdateEventHandler', () => {
       calendarId: 'primary',
       wasAutoSelected: true
     });
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   describe('Basic Event Updates', () => {
@@ -262,6 +268,7 @@ describe('UpdateEventHandler', () => {
       expect(mockCalendar.events.patch).toHaveBeenCalledWith({
         calendarId: 'primary',
         eventId: 'event123',
+        sendUpdates: 'all',
         requestBody: expect.objectContaining({
           attendees: [
             { email: 'alice@example.com' },
@@ -615,6 +622,7 @@ describe('UpdateEventHandler', () => {
       expect(mockCalendar.events.patch).toHaveBeenCalledWith({
         calendarId: 'primary',
         eventId: 'event123',
+        sendUpdates: 'externalOnly',
         requestBody: expect.objectContaining({
           summary: 'Updated Meeting',
           description: 'Updated description',
@@ -756,6 +764,7 @@ describe('UpdateEventHandler', () => {
       expect(mockCalendar.events.patch).toHaveBeenCalledWith({
         calendarId: 'primary',
         eventId: 'event123',
+        sendUpdates: 'all',
         requestBody: expect.objectContaining({
           summary: 'Updated Meeting'
         })
@@ -783,6 +792,7 @@ describe('UpdateEventHandler', () => {
       expect(mockCalendar.events.patch).toHaveBeenCalledWith({
         calendarId: 'primary',
         eventId: 'event123',
+        sendUpdates: 'externalOnly',
         requestBody: expect.objectContaining({
           summary: 'Updated Meeting'
         })
@@ -810,14 +820,110 @@ describe('UpdateEventHandler', () => {
       expect(mockCalendar.events.patch).toHaveBeenCalledWith({
         calendarId: 'primary',
         eventId: 'event123',
+        sendUpdates: 'none',
         requestBody: expect.objectContaining({
           summary: 'Updated Meeting'
         })
       });
     });
+
+    it('should default to sending updates to all through the registered schema', async () => {
+      const mockUpdatedEvent = { id: 'event123', summary: 'Updated Meeting' };
+      mockCalendar.events.get.mockResolvedValue({ data: { recurrence: null } });
+      mockCalendar.events.patch.mockResolvedValue({ data: mockUpdatedEvent });
+
+      const args = ToolSchemas['update-event'].parse({
+        calendarId: 'primary',
+        eventId: 'event123',
+        summary: 'Updated Meeting'
+      });
+
+      expect(args.sendUpdates).toBe('all');
+      await handler.runTool(args, mockAccounts);
+
+      expect(mockCalendar.events.patch).toHaveBeenCalledWith(expect.objectContaining({
+        sendUpdates: 'all'
+      }));
+    });
+
+    it('should forward sendUpdates through single and future recurrence calls', async () => {
+      mockCalendar.events.patch.mockResolvedValue({ data: { id: 'updated-event' } });
+
+      const singleHelpers = {
+        getCalendar: () => mockCalendar,
+        formatInstanceId: vi.fn().mockReturnValue('recurring123_20250201T180000Z'),
+        buildUpdateRequestBody: vi.fn().mockReturnValue({ summary: 'Updated instance' })
+      } as unknown as RecurringEventHelpers;
+
+      await (handler as any).updateSingleInstance(singleHelpers, {
+        calendarId: 'primary',
+        eventId: 'recurring123',
+        originalStartTime: '2025-02-01T10:00:00-08:00',
+        sendUpdates: 'externalOnly'
+      } as UpdateEventInput, 'America/Los_Angeles');
+
+      expect(mockCalendar.events.patch).toHaveBeenLastCalledWith(expect.objectContaining({
+        sendUpdates: 'externalOnly'
+      }));
+
+      mockCalendar.events.patch.mockClear();
+      mockCalendar.events.get.mockResolvedValue({
+        data: {
+          id: 'recurring123',
+          recurrence: ['RRULE:FREQ=WEEKLY'],
+          start: { dateTime: '2025-01-01T10:00:00Z' },
+          end: { dateTime: '2025-01-01T11:00:00Z' }
+        }
+      });
+      mockCalendar.events.insert.mockResolvedValue({ data: { id: 'new-recurring-event' } });
+
+      const futureHelpers = {
+        getCalendar: () => mockCalendar,
+        buildUpdateRequestBody: vi.fn().mockReturnValue({}),
+        cleanEventForDuplication: vi.fn().mockReturnValue({ recurrence: ['RRULE:FREQ=WEEKLY'] }),
+        calculateEndTime: vi.fn().mockReturnValue('2025-02-01T11:00:00Z'),
+        calculateUntilDate: vi.fn().mockReturnValue('20250131T100000Z'),
+        updateRecurrenceWithUntil: vi.fn().mockReturnValue(['RRULE:FREQ=WEEKLY;UNTIL=20250131T100000Z'])
+      } as unknown as RecurringEventHelpers;
+
+      await (handler as any).updateFutureInstances(futureHelpers, {
+        calendarId: 'primary',
+        eventId: 'recurring123',
+        futureStartDate: '2025-02-01T10:00:00-08:00',
+        timeZone: 'America/Los_Angeles',
+        sendUpdates: 'none'
+      } as UpdateEventInput, 'America/Los_Angeles');
+
+      expect(mockCalendar.events.patch).toHaveBeenCalledWith(expect.objectContaining({
+        sendUpdates: 'none'
+      }));
+      expect(mockCalendar.events.insert).toHaveBeenCalledWith(expect.objectContaining({
+        sendUpdates: 'none'
+      }));
+    });
   });
 
   describe('Error Handling', () => {
+    it('should sanitize provider failures during the existing-event prefetch in broker mode', async () => {
+      vi.stubEnv(BROKER_BEARER_ENV, 'broker-token');
+      mockCalendar.events.get.mockRejectedValue({
+        message: 'provider-prefetch-sentinel',
+        response: { status: 403, data: { event: 'private-event-sentinel' } }
+      });
+
+      const error = await handler.runTool({
+        calendarId: 'primary',
+        eventId: 'private-event-id',
+        attendees: [{ email: 'guest@example.com' }]
+      }, mockAccounts).catch((caught) => caught);
+
+      expect(error).toBeInstanceOf(McpError);
+      expect(error.message).toContain('Google Calendar access was denied (HTTP 403).');
+      expect(String(error)).not.toContain('private-event-id');
+      expect(String(error)).not.toContain('provider-prefetch-sentinel');
+      expect(JSON.stringify(error)).not.toContain('private-event-sentinel');
+    });
+
     it('should handle event not found error', async () => {
       const notFoundError = new Error('Not Found');
       (notFoundError as any).code = 404;
