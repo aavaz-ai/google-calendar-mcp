@@ -46,7 +46,7 @@ The server supports two transport modes: **stdio** (for local Claude Desktop) an
 #### Step 1: Initial Setup
 ```bash
 # Clone and setup
-git clone https://github.com/nspady/google-calendar-mcp.git
+git clone https://github.com/aavaz-ai/google-calendar-mcp.git
 cd google-calendar-mcp
 
 # Place your OAuth credentials in the project root
@@ -98,7 +98,7 @@ Restart Claude Desktop to load the new configuration. The server should now work
 #### Step 1: Configure Environment
 ```bash
 # Clone and setup
-git clone https://github.com/nspady/google-calendar-mcp.git
+git clone https://github.com/aavaz-ai/google-calendar-mcp.git
 cd google-calendar-mcp
 
 # Place your OAuth credentials in the project root

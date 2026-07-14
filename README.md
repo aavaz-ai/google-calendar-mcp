@@ -1,5 +1,43 @@
 # Google Calendar MCP Server
 
+> **Enterpret fork.** This repository tracks
+> [`nspady/google-calendar-mcp`](https://github.com/nspady/google-calendar-mcp)
+> and adds a headless broker-token mode for Enterpret Agent. The upstream
+> interactive OAuth and multi-account flows remain available when broker mode
+> is not enabled. Enterpret package version `0.1.0` is based on upstream
+> version `2.6.2` and is versioned independently to avoid inherited Git tag
+> collisions.
+
+## Enterpret broker-token mode
+
+Enterpret Agent owns Google OAuth through Nango and starts this package as an
+ephemeral stdio MCP subprocess. Set one environment variable:
+
+```bash
+GOOGLE_CALENDAR_OAUTH_BEARER=<short-lived-access-token> \
+  npx @enterpret/google-calendar-mcp@0.1.0
+```
+
+In this mode the server:
+
+- uses the supplied access token only in memory;
+- does not read OAuth client credentials or token files;
+- does not start a browser or OAuth callback server;
+- supports stdio transport only;
+- performs a real `calendarList.list` probe before advertising tools;
+- omits `manage-accounts`, `create-events`, and `list-colors` from discovery.
+
+Nango is responsible for refreshing the token before each subprocess run. The
+broker-token mode must never receive or persist a refresh token.
+
+If `GOOGLE_CALENDAR_OAUTH_BEARER` is present but empty or whitespace-only, the
+server fails closed instead of falling back to interactive OAuth. Interactive
+OAuth is selected only when the variable is absent.
+
+The enabled tool set is `list-calendars`, `list-events`, `search-events`,
+`get-event`, `get-freebusy`, `get-current-time`, `create-event`, `update-event`,
+`delete-event`, and `respond-to-event`.
+
 A Model Context Protocol (MCP) server that provides Google Calendar integration for AI assistants like Claude.
 
 ## Features
@@ -51,7 +89,7 @@ Add to your Claude Desktop configuration:
   "mcpServers": {
     "google-calendar": {
       "command": "npx",
-      "args": ["@cocal/google-calendar-mcp"],
+      "args": ["@enterpret/google-calendar-mcp"],
       "env": {
         "GOOGLE_OAUTH_CREDENTIALS": "/path/to/your/gcp-oauth.keys.json"
       }
@@ -65,7 +103,7 @@ Add to your Claude Desktop configuration:
 **Option 2: Local Installation**
 
 ```bash
-git clone https://github.com/nspady/google-calendar-mcp.git
+git clone https://github.com/aavaz-ai/google-calendar-mcp.git
 cd google-calendar-mcp
 npm install
 npm run build
@@ -76,7 +114,7 @@ Then add to Claude Desktop config using the local path or by specifying the path
 **Option 3: Docker Installation**
 
 ```bash
-git clone https://github.com/nspady/google-calendar-mcp.git
+git clone https://github.com/aavaz-ai/google-calendar-mcp.git
 cd google-calendar-mcp
 cp /path/to/your/gcp-oauth.keys.json .
 docker compose up
@@ -100,7 +138,7 @@ If you're in test mode (default), tokens expire after 7 days. If you are using a
 **For npx users:**
 ```bash
 export GOOGLE_OAUTH_CREDENTIALS="/path/to/your/gcp-oauth.keys.json"
-npx @cocal/google-calendar-mcp auth
+npx @enterpret/google-calendar-mcp auth
 ```
 
 **For local installation:**
@@ -192,6 +230,7 @@ Along with the normal capabilities you would expect for a calendar integration y
 
 ## Documentation
 
+- [Enterpret Broker Integration](docs/enterpret-broker-integration.md) - Nango/Wisdom runtime contract, security boundaries, validation, and release checklist
 - [Authentication Setup](docs/authentication.md) - Detailed Google Cloud setup
 - [Advanced Usage](docs/advanced-usage.md) - Multi-account, batch operations
 - [Deployment Guide](docs/deployment.md) - HTTP transport, remote access
@@ -223,7 +262,7 @@ You can limit which tools are exposed to the AI assistant using the `--enable-to
 
 **Via command line:**
 ```bash
-npx @cocal/google-calendar-mcp start --enable-tools list-events,create-event,get-current-time
+npx @enterpret/google-calendar-mcp start --enable-tools list-events,create-event,get-current-time
 ```
 
 **Via environment variable in Claude Desktop config:**
@@ -232,7 +271,7 @@ npx @cocal/google-calendar-mcp start --enable-tools list-events,create-event,get
   "mcpServers": {
     "google-calendar": {
       "command": "npx",
-      "args": ["@cocal/google-calendar-mcp"],
+      "args": ["@enterpret/google-calendar-mcp"],
       "env": {
         "GOOGLE_OAUTH_CREDENTIALS": "/path/to/credentials.json",
         "ENABLED_TOOLS": "list-events,create-event,get-current-time,update-event"
@@ -246,6 +285,9 @@ npx @cocal/google-calendar-mcp start --enable-tools list-events,create-event,get
 
 **Note:** The `manage-accounts` tool is always available regardless of filtering, as it's needed for authentication management.
 
+Broker-token mode intentionally uses the fixed ten-tool surface documented
+above and does not apply `--enable-tools` or `ENABLED_TOOLS` filtering.
+
 When tool filtering is active, the server provides instructions to the AI assistant listing which tools are disabled. This allows the AI to inform users that additional functionality exists but is currently unavailable, without consuming the full token cost of those tool schemas.
 
 If the list is empty or contains only commas, the server will fail to start with an error.
@@ -254,8 +296,10 @@ If an invalid tool name is specified, the server will fail to start with an erro
 
 ## Security
 
-- OAuth tokens are stored securely in your system's config directory
-- Credentials never leave your local machine
+- Interactive OAuth tokens are stored securely in your system's config directory
+- Broker-supplied access tokens remain in process memory and never use token storage
+- Broker credentials are process configuration, never MCP tool arguments
+- Authentication material is not written to MCP responses or logs
 - All calendar operations require explicit user consent
 
 ### Troubleshooting
@@ -290,5 +334,5 @@ MIT
 
 ## Support
 
-- [GitHub Issues](https://github.com/nspady/google-calendar-mcp/issues)
+- [GitHub Issues](https://github.com/aavaz-ai/google-calendar-mcp/issues)
 - [Documentation](docs/)

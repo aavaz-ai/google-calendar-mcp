@@ -14,6 +14,7 @@ Welcome to the Google Calendar MCP Server documentation.
 ## Deployment
 
 - [Deployment Guide](deployment.md) - HTTP transport, Docker, cloud deployment
+- [Enterpret Broker Integration](enterpret-broker-integration.md) - Ephemeral bearer-mode architecture, security, validation, and release checklist
 
 ## Development
 
@@ -45,5 +46,4 @@ Welcome to the Google Calendar MCP Server documentation.
 
 ## Need Help?
 
-- [GitHub Issues](https://github.com/nspady/google-calendar-mcp/issues)
-- [GitHub Discussions](https://github.com/nspady/google-calendar-mcp/discussions)
+- [GitHub Issues](https://github.com/aavaz-ai/google-calendar-mcp/issues)

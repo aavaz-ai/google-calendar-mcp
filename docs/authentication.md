@@ -80,7 +80,7 @@ In Claude Desktop config:
   "mcpServers": {
     "google-calendar": {
       "command": "npx",
-      "args": ["@cocal/google-calendar-mcp"],
+      "args": ["@enterpret/google-calendar-mcp"],
       "env": {
         "GOOGLE_OAUTH_CREDENTIALS": "/path/to/your/gcp-oauth.keys.json"
       }
@@ -126,7 +126,7 @@ If you're using the MCP via `npx` (e.g., in Claude Desktop):
 export GOOGLE_OAUTH_CREDENTIALS="/path/to/your/gcp-oauth.keys.json"
 
 # Run the auth command
-npx @cocal/google-calendar-mcp auth
+npx @enterpret/google-calendar-mcp auth
 ```
 
 ### For Local Installation

@@ -218,7 +218,7 @@ MCP tools return errors as successful responses with error content, not as throw
 
 ## Deployment
 
-- **npx**: `npx @cocal/google-calendar-mcp` (requires `GOOGLE_OAUTH_CREDENTIALS` env var)
+- **npx**: `npx @enterpret/google-calendar-mcp` (requires `GOOGLE_OAUTH_CREDENTIALS` env var)
 - **Docker**: See `docs/docker.md` for Docker deployment with stdio and HTTP modes
 - **Claude Desktop Config**: See README.md for local stdio configuration
 
@@ -233,4 +233,3 @@ MCP tools return errors as successful responses with error content, not as throw
 **Key Differences:**
 - **stdio**: For Claude Desktop only, local machine
 - **HTTP**: For testing, development, debugging (local only)
-
