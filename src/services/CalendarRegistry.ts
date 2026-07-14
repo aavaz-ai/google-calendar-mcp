@@ -1,5 +1,6 @@
 import { OAuth2Client } from 'google-auth-library';
 import { calendar_v3, google } from 'googleapis';
+import { isBrokerOAuthClient } from '../auth/brokerBearer.js';
 import { getCredentialsProjectId } from '../auth/utils.js';
 
 /**
@@ -72,7 +73,7 @@ export class CalendarRegistry {
    * Get calendar client for a specific account
    */
   private getCalendar(auth: OAuth2Client): calendar_v3.Calendar {
-    const quotaProjectId = getCredentialsProjectId();
+    const quotaProjectId = isBrokerOAuthClient(auth) ? undefined : getCredentialsProjectId();
     const config: any = {
       version: 'v3',
       auth,

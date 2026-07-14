@@ -10,6 +10,12 @@ import { fileURLToPath } from "url";
 import { initializeOAuth2Client } from './auth/client.js';
 import { AuthServer } from './auth/server.js';
 import { TokenManager } from './auth/tokenManager.js';
+import {
+  BROKER_ENABLED_TOOLS,
+  createBrokerAccount,
+  probeBrokerCalendarAccess,
+  readBrokerBearer
+} from './auth/brokerBearer.js';
 
 // Import tool registry
 import { ToolRegistry } from './tools/registry.js';
@@ -33,10 +39,11 @@ const SERVER_VERSION = JSON.parse(readFileSync(join(__server_dirname, '..', 'pac
 export class GoogleCalendarMcpServer {
   private server: McpServer;
   private oauth2Client!: OAuth2Client;
-  private tokenManager!: TokenManager;
-  private authServer!: AuthServer;
+  private tokenManager?: TokenManager;
+  private authServer?: AuthServer;
   private config: ServerConfig;
   private accounts!: Map<string, OAuth2Client>;
+  private brokerTokenMode = false;
 
   constructor(config: ServerConfig) {
     this.config = config;
@@ -47,16 +54,23 @@ export class GoogleCalendarMcpServer {
   }
 
   async initialize(): Promise<void> {
-    // 1. Initialize Authentication (but don't block on it)
-    this.oauth2Client = await initializeOAuth2Client();
-    this.tokenManager = new TokenManager(this.oauth2Client);
-    this.authServer = new AuthServer(this.oauth2Client);
-
-    // 2. Load all authenticated accounts
-    this.accounts = await this.tokenManager.loadAllAccounts();
-
-    // 3. Handle startup authentication based on transport type
-    await this.handleStartupAuthentication();
+    const brokerBearer = readBrokerBearer();
+    if (brokerBearer) {
+      if (this.config.transport.type !== 'stdio') {
+        throw new Error('Broker-supplied Google Calendar tokens are supported only with stdio transport');
+      }
+      this.brokerTokenMode = true;
+      this.accounts = createBrokerAccount(brokerBearer);
+      this.oauth2Client = this.accounts.values().next().value!;
+      await probeBrokerCalendarAccess(this.oauth2Client);
+    } else {
+      // Initialize the upstream interactive OAuth and multi-account flow.
+      this.oauth2Client = await initializeOAuth2Client();
+      this.tokenManager = new TokenManager(this.oauth2Client);
+      this.authServer = new AuthServer(this.oauth2Client);
+      this.accounts = await this.tokenManager.loadAllAccounts();
+      await this.handleStartupAuthentication();
+    }
 
     // 4. Set up Modern Tool Definitions
     this.registerTools();
@@ -71,6 +85,10 @@ export class GoogleCalendarMcpServer {
     // Skip authentication in test environment
     if (process.env.NODE_ENV === 'test') {
       return;
+    }
+
+    if (!this.tokenManager) {
+      throw new Error('Token manager is unavailable outside the interactive OAuth mode');
     }
 
     this.accounts = await this.tokenManager.loadAllAccounts();
@@ -90,7 +108,7 @@ export class GoogleCalendarMcpServer {
         // User can authenticate via the 'manage-accounts' tool
         process.stderr.write(`⚠️  No authenticated accounts found.\n`);
         process.stderr.write(`Use the 'manage-accounts' tool with action 'add' to authenticate a Google account, or run:\n`);
-        process.stderr.write(`  npx @cocal/google-calendar-mcp auth\n\n`);
+        process.stderr.write(`  npx @enterpret/google-calendar-mcp auth\n\n`);
         // Don't exit - allow server to start so add-account tool is available
       } else {
         process.stderr.write(`Valid ${accountMode} user tokens found.\n`);
@@ -110,10 +128,15 @@ export class GoogleCalendarMcpServer {
   }
 
   private registerTools(): void {
-    ToolRegistry.registerAll(this.server, this.executeWithHandler.bind(this), this.config);
+    const toolConfig = this.brokerTokenMode
+      ? { ...this.config, enabledTools: [...BROKER_ENABLED_TOOLS] }
+      : this.config;
+    ToolRegistry.registerAll(this.server, this.executeWithHandler.bind(this), toolConfig);
 
     // Register account management tools separately (they need special context)
-    this.registerAccountManagementTools();
+    if (!this.brokerTokenMode) {
+      this.registerAccountManagementTools();
+    }
   }
 
   /**
@@ -123,15 +146,20 @@ export class GoogleCalendarMcpServer {
    * - Needs access to authServer, tokenManager, etc.
    */
   private registerAccountManagementTools(): void {
+    if (!this.tokenManager || !this.authServer) {
+      throw new Error('Account-management tools require the interactive OAuth mode');
+    }
+    const tokenManager = this.tokenManager;
+    const authServer = this.authServer;
     // Use arrow functions to keep `this` reference current after reloadAccounts()
     const self = this;
     const serverContext: ServerContext = {
       oauth2Client: this.oauth2Client,
-      tokenManager: this.tokenManager,
-      authServer: this.authServer,
+      tokenManager,
+      authServer,
       get accounts() { return self.accounts; },
       reloadAccounts: async () => {
-        this.accounts = await this.tokenManager.loadAllAccounts();
+        this.accounts = await tokenManager.loadAllAccounts();
         return this.accounts;
       }
     };
@@ -336,6 +364,13 @@ export class GoogleCalendarMcpServer {
   }
 
   private async ensureAuthenticated(): Promise<void> {
+    if (this.brokerTokenMode) {
+      return;
+    }
+    if (!this.tokenManager || !this.authServer) {
+      throw new McpError(ErrorCode.InternalError, 'Interactive OAuth dependencies are unavailable');
+    }
+
     const availableAccounts = await this.tokenManager.loadAllAccounts();
     if (availableAccounts.size > 0) {
       this.accounts = availableAccounts;
@@ -395,6 +430,9 @@ export class GoogleCalendarMcpServer {
         break;
         
       case 'http':
+        if (!this.tokenManager) {
+          throw new Error('HTTP transport requires the interactive OAuth mode');
+        }
         const httpConfig: HttpTransportConfig = {
           port: this.config.transport.port,
           host: this.config.transport.host
