@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { CalendarRegistry } from '../../../services/CalendarRegistry.js';
 import { OAuth2Client } from 'google-auth-library';
-import { google } from 'googleapis';
+import { calendar as createCalendarClient } from '@googleapis/calendar';
 import { BROKER_ACCOUNT_ID, createBrokerAccount } from '../../../auth/brokerBearer.js';
 
 const state = vi.hoisted(() => ({
@@ -10,10 +10,8 @@ const state = vi.hoisted(() => ({
 }));
 
 // Mock googleapis
-vi.mock('googleapis', () => ({
-  google: {
-    calendar: state.calendar
-  }
+vi.mock('@googleapis/calendar', () => ({
+  calendar: state.calendar
 }));
 
 vi.mock('../../../auth/utils.js', () => ({
@@ -64,7 +62,7 @@ describe('CalendarRegistry', () => {
 
   describe('getUnifiedCalendars', () => {
     it('does not read legacy OAuth credentials for broker-backed registry requests', async () => {
-      vi.mocked(google.calendar).mockReturnValue({
+      vi.mocked(createCalendarClient).mockReturnValue({
         calendarList: { list: vi.fn().mockResolvedValue({ data: { items: [] } }) }
       } as any);
       const brokerAccounts = createBrokerAccount('broker-access-token');
@@ -77,7 +75,7 @@ describe('CalendarRegistry', () => {
     });
 
     it('preserves quota project lookup for interactive registry requests', async () => {
-      vi.mocked(google.calendar).mockReturnValue({
+      vi.mocked(createCalendarClient).mockReturnValue({
         calendarList: { list: vi.fn().mockResolvedValue({ data: { items: [] } }) }
       } as any);
 
@@ -128,7 +126,7 @@ describe('CalendarRegistry', () => {
         }
       });
 
-      vi.mocked(google.calendar).mockImplementation((config: any) => {
+      vi.mocked(createCalendarClient).mockImplementation((config: any) => {
         const token = config.auth.credentials.access_token;
         return {
           calendarList: {
@@ -173,7 +171,7 @@ describe('CalendarRegistry', () => {
         }
       });
 
-      vi.mocked(google.calendar).mockImplementation((config: any) => {
+      vi.mocked(createCalendarClient).mockImplementation((config: any) => {
         const token = config.auth.credentials.access_token;
         return {
           calendarList: {
@@ -203,7 +201,7 @@ describe('CalendarRegistry', () => {
         }
       });
 
-      vi.mocked(google.calendar).mockImplementation(() => ({
+      vi.mocked(createCalendarClient).mockImplementation(() => ({
         calendarList: { list: mockCalendar }
       } as any));
 
@@ -218,7 +216,7 @@ describe('CalendarRegistry', () => {
         data: { items: [] }
       });
 
-      vi.mocked(google.calendar).mockImplementation(() => ({
+      vi.mocked(createCalendarClient).mockImplementation(() => ({
         calendarList: { list: mockCalendar }
       } as any));
 
@@ -242,7 +240,7 @@ describe('CalendarRegistry', () => {
 
       const mockPersonalCalendar = vi.fn().mockRejectedValue(new Error('API Error'));
 
-      vi.mocked(google.calendar).mockImplementation((config: any) => {
+      vi.mocked(createCalendarClient).mockImplementation((config: any) => {
         const token = config.auth.credentials.access_token;
         return {
           calendarList: {
@@ -285,7 +283,7 @@ describe('CalendarRegistry', () => {
         }
       });
 
-      vi.mocked(google.calendar).mockImplementation((config: any) => {
+      vi.mocked(createCalendarClient).mockImplementation((config: any) => {
         const token = config.auth.credentials.access_token;
         return {
           calendarList: {
@@ -321,7 +319,7 @@ describe('CalendarRegistry', () => {
         }
       });
 
-      vi.mocked(google.calendar).mockImplementation(() => ({
+      vi.mocked(createCalendarClient).mockImplementation(() => ({
         calendarList: { list: mockCalendar }
       } as any));
 
@@ -386,7 +384,7 @@ describe('CalendarRegistry', () => {
         }
       });
 
-      vi.mocked(google.calendar).mockImplementation((config: any) => {
+      vi.mocked(createCalendarClient).mockImplementation((config: any) => {
         const token = config.auth.credentials.access_token;
         return {
           calendarList: {
@@ -411,7 +409,7 @@ describe('CalendarRegistry', () => {
         data: { items: [] }
       });
 
-      vi.mocked(google.calendar).mockImplementation(() => ({
+      vi.mocked(createCalendarClient).mockImplementation(() => ({
         calendarList: { list: mockCalendar }
       } as any));
 
@@ -430,7 +428,7 @@ describe('CalendarRegistry', () => {
         data: { items: [] }
       });
 
-      vi.mocked(google.calendar).mockImplementation(() => ({
+      vi.mocked(createCalendarClient).mockImplementation(() => ({
         calendarList: { list: mockCalendar }
       } as any));
 
@@ -487,7 +485,7 @@ describe('CalendarRegistry', () => {
         }
       });
 
-      vi.mocked(google.calendar).mockImplementation((config: any) => {
+      vi.mocked(createCalendarClient).mockImplementation((config: any) => {
         const token = config.auth.credentials.access_token;
         return {
           calendarList: {
@@ -640,7 +638,7 @@ describe('CalendarRegistry', () => {
         }
       });
 
-      vi.mocked(google.calendar).mockImplementation((config: any) => {
+      vi.mocked(createCalendarClient).mockImplementation((config: any) => {
         const token = config.auth.credentials.access_token;
         return {
           calendarList: {
@@ -755,7 +753,7 @@ describe('CalendarRegistry', () => {
         })
       );
 
-      vi.mocked(google.calendar).mockImplementation(() => ({
+      vi.mocked(createCalendarClient).mockImplementation(() => ({
         calendarList: { list: mockCalendar }
       } as any));
 
@@ -779,7 +777,7 @@ describe('CalendarRegistry', () => {
         data: { items: [] }
       });
 
-      vi.mocked(google.calendar).mockImplementation(() => ({
+      vi.mocked(createCalendarClient).mockImplementation(() => ({
         calendarList: { list: mockCalendar }
       } as any));
 

@@ -1,5 +1,5 @@
 import { OAuth2Client } from 'google-auth-library';
-import { google } from 'googleapis';
+import { calendar as createCalendarClient } from '@googleapis/calendar';
 
 export const BROKER_BEARER_ENV = 'GOOGLE_CALENDAR_OAUTH_BEARER';
 export const BROKER_ACCOUNT_ID = 'default';
@@ -51,7 +51,7 @@ export function isBrokerOAuthClient(oauth2Client: OAuth2Client): boolean {
 
 export async function probeBrokerCalendarAccess(oauth2Client: OAuth2Client): Promise<void> {
   try {
-    const calendar = google.calendar({
+    const calendar = createCalendarClient({
       version: 'v3',
       auth: oauth2Client,
       timeout: BROKER_PROBE_TIMEOUT_MS

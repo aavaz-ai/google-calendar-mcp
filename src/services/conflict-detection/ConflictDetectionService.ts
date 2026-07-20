@@ -1,5 +1,5 @@
 import { OAuth2Client } from "google-auth-library";
-import { google, calendar_v3 } from "googleapis";
+import { calendar as createCalendarClient, calendar_v3 } from "@googleapis/calendar";
 import {
   ConflictCheckResult,
   InternalConflictInfo,
@@ -154,7 +154,7 @@ export class ConflictDetectionService {
     timeZone?: string
   ): Promise<calendar_v3.Schema$Event[]> {
     // Fetch from API
-    const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+    const calendar = createCalendarClient({ version: "v3", auth: oauth2Client });
     
     // Build list parameters
     const listParams: any = {

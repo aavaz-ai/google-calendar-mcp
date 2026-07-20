@@ -5,14 +5,12 @@ import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { CalendarRegistry } from '../../../services/CalendarRegistry.js';
 
 // Mock the googleapis module
-vi.mock('googleapis', () => ({
-  google: {
-    calendar: vi.fn(() => ({
-      events: {
-        insert: vi.fn()
-      }
-    }))
-  },
+vi.mock('@googleapis/calendar', () => ({
+  calendar: vi.fn(() => ({
+    events: {
+      insert: vi.fn()
+    }
+  })),
   calendar_v3: {}
 }));
 

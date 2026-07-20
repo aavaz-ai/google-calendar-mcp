@@ -1,5 +1,5 @@
 import { OAuth2Client } from 'google-auth-library';
-import { calendar_v3, google } from 'googleapis';
+import { calendar as createCalendarClient, calendar_v3 } from '@googleapis/calendar';
 import { isBrokerOAuthClient } from '../auth/brokerBearer.js';
 import { getCredentialsProjectId } from '../auth/utils.js';
 
@@ -82,7 +82,7 @@ export class CalendarRegistry {
     if (quotaProjectId) {
       config.quotaProjectId = quotaProjectId;
     }
-    return google.calendar(config);
+    return createCalendarClient(config);
   }
 
   /**

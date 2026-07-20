@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { calendar_v3 } from 'googleapis';
+import { calendar_v3 } from '@googleapis/calendar';
 import { RecurringEventHelpers } from '../../../handlers/core/RecurringEventHelpers.js';
 
 describe('RecurringEventHelpers', () => {

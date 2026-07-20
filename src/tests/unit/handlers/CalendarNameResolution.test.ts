@@ -5,21 +5,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ListEventsHandler } from '../../../handlers/core/ListEventsHandler.js';
 import { OAuth2Client } from 'google-auth-library';
-import { google } from 'googleapis';
+import { calendar as createCalendarClient } from '@googleapis/calendar';
 
 // Mock googleapis globally
-vi.mock('googleapis', () => ({
-  google: {
-    calendar: vi.fn(() => ({
-      events: {
-        list: vi.fn()
-      },
-      calendarList: {
-        list: vi.fn(),
-        get: vi.fn()
-      }
-    }))
-  }
+vi.mock('@googleapis/calendar', () => ({
+  calendar: vi.fn(() => ({
+    events: {
+      list: vi.fn()
+    },
+    calendarList: {
+      list: vi.fn(),
+      get: vi.fn()
+    }
+  }))
 }));
 
 describe('Calendar Name Resolution', () => {
@@ -74,7 +72,7 @@ describe('Calendar Name Resolution', () => {
         })
       }
     };
-    vi.mocked(google.calendar).mockReturnValue(mockCalendar);
+    vi.mocked(createCalendarClient).mockReturnValue(mockCalendar);
   });
 
   describe('summaryOverride matching priority', () => {

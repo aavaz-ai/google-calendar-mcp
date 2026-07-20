@@ -4,14 +4,12 @@ import { OAuth2Client } from 'google-auth-library';
 import { CalendarRegistry } from '../../../services/CalendarRegistry.js';
 
 // Mock the googleapis module
-vi.mock('googleapis', () => ({
-  google: {
-    calendar: vi.fn(() => ({
-      events: {
-        delete: vi.fn()
-      }
-    }))
-  },
+vi.mock('@googleapis/calendar', () => ({
+  calendar: vi.fn(() => ({
+    events: {
+      delete: vi.fn()
+    }
+  })),
   calendar_v3: {}
 }));
 

@@ -4,7 +4,7 @@
  * Usage for calendar events mock:
  * ```typescript
  * import { createGoogleapisMock } from '../mocks/googleapis.js';
- * vi.mock('googleapis', () => createGoogleapisMock(['list', 'insert', 'update', 'delete']));
+ * vi.mock('@googleapis/calendar', () => createGoogleapisMock(['list', 'insert', 'update', 'delete']));
  * ```
  */
 import { vi } from 'vitest';
@@ -60,14 +60,12 @@ export function createGoogleapisMock(options: GoogleapisMockOptions = {}) {
   }
 
   return {
-    google: {
-      calendar: vi.fn(() => ({
-        events: Object.keys(eventsMock).length > 0 ? eventsMock : undefined,
-        freebusy: Object.keys(freebusyMock).length > 0 ? freebusyMock : undefined,
-        calendarList: Object.keys(calendarListMock).length > 0 ? calendarListMock : undefined,
-        calendars: Object.keys(calendarsMock).length > 0 ? calendarsMock : undefined
-      }))
-    },
+    calendar: vi.fn(() => ({
+      events: Object.keys(eventsMock).length > 0 ? eventsMock : undefined,
+      freebusy: Object.keys(freebusyMock).length > 0 ? freebusyMock : undefined,
+      calendarList: Object.keys(calendarListMock).length > 0 ? calendarListMock : undefined,
+      calendars: Object.keys(calendarsMock).length > 0 ? calendarsMock : undefined
+    })),
     calendar_v3: {}
   };
 }

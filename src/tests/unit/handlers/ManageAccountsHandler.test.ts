@@ -4,19 +4,17 @@ import { OAuth2Client } from 'google-auth-library';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { AuthServer } from '../../../auth/server.js';
 import { TokenManager } from '../../../auth/tokenManager.js';
-import { google } from 'googleapis';
+import { calendar as createCalendarClient } from '@googleapis/calendar';
 
 // Mock googleapis
 const mockCalendarList = vi.fn();
 
-vi.mock('googleapis', () => ({
-  google: {
-    calendar: vi.fn(() => ({
-      calendarList: {
-        list: mockCalendarList
-      }
-    }))
-  }
+vi.mock('@googleapis/calendar', () => ({
+  calendar: vi.fn(() => ({
+    calendarList: {
+      list: mockCalendarList
+    }
+  }))
 }));
 
 describe('ManageAccountsHandler', () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { EventSimilarityChecker } from '../../../../services/conflict-detection/EventSimilarityChecker.js';
-import { calendar_v3 } from 'googleapis';
+import { calendar_v3 } from '@googleapis/calendar';
 
 describe('EventSimilarityChecker', () => {
   const checker = new EventSimilarityChecker();

@@ -1,6 +1,6 @@
 import { CallToolResult, McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { OAuth2Client } from "google-auth-library";
-import { google } from "googleapis";
+import { calendar as createCalendarClient } from "@googleapis/calendar";
 import { AuthServer } from "../../auth/server.js";
 import { TokenManager } from "../../auth/tokenManager.js";
 import { validateAccountId } from "../../auth/paths.js";
@@ -136,7 +136,7 @@ export class ManageAccountsHandler {
 
   private async getAccountInfo(accountId: string, client: OAuth2Client): Promise<AccountInfo> {
     try {
-      const calendar = google.calendar({ version: 'v3', auth: client });
+      const calendar = createCalendarClient({ version: 'v3', auth: client });
 
       const calendarList = await calendar.calendarList.list();
       const calendars = calendarList.data.items || [];

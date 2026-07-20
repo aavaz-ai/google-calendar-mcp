@@ -3,7 +3,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { OAuth2Client } from 'google-auth-library';
-import { calendar_v3 } from 'googleapis';
+import { calendar_v3 } from '@googleapis/calendar';
 // Import the types and schemas we're testing
 import { ToolSchemas } from '../../../tools/registry.js';
 import { ExtendedEvent } from '../../../types/structured-responses.js';
@@ -24,7 +24,7 @@ class MockBatchRequestHandler {
 
 // Mock dependencies
 vi.mock('google-auth-library');
-vi.mock('googleapis');
+vi.mock('@googleapis/calendar');
 
 describe('Batch List Events Functionality', () => {
   let mockOAuth2Client: OAuth2Client;

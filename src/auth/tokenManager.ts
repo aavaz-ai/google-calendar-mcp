@@ -674,8 +674,8 @@ export class TokenManager {
    * Fetch calendars for a specific OAuth2Client
    */
   private async fetchCalendarsForClient(client: OAuth2Client): Promise<CachedCalendar[]> {
-    const { google } = await import('googleapis');
-    const calendar = google.calendar({ version: 'v3', auth: client });
+    const { calendar: createCalendarClient } = await import('@googleapis/calendar');
+    const calendar = createCalendarClient({ version: 'v3', auth: client });
     const response = await calendar.calendarList.list();
     const items = response.data.items || [];
 
@@ -715,8 +715,8 @@ export class TokenManager {
 
     // Fallback: Get primary calendar ID (usually the user's email)
     try {
-      const { google } = await import('googleapis');
-      const calendar = google.calendar({ version: 'v3', auth: client });
+      const { calendar: createCalendarClient } = await import('@googleapis/calendar');
+      const calendar = createCalendarClient({ version: 'v3', auth: client });
       const response = await calendar.calendars.get({ calendarId: 'primary' });
       const primaryId = response.data.id;
       // Primary calendar ID is typically the user's email

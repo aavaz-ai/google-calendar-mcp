@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { generateEventUrl, getEventUrl } from '../../../utils/event-url.js';
-import { calendar_v3 } from 'googleapis';
+import { calendar_v3 } from '@googleapis/calendar';
 
 describe('Event URL Utilities', () => {
     describe('generateEventUrl', () => {

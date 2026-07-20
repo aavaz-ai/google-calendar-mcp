@@ -1,22 +1,20 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ListEventsHandler } from '../../../handlers/core/ListEventsHandler.js';
 import { OAuth2Client } from 'google-auth-library';
-import { google } from 'googleapis';
+import { calendar as createCalendarClient } from '@googleapis/calendar';
 import { convertToRFC3339 } from '../../../utils/datetime.js';
 import { BROKER_BEARER_ENV } from '../../../auth/brokerBearer.js';
 
 // Mock googleapis globally
-vi.mock('googleapis', () => ({
-  google: {
-    calendar: vi.fn(() => ({
-      events: {
-        list: vi.fn()
-      },
-      calendarList: {
-        get: vi.fn()
-      }
-    }))
-  }
+vi.mock('@googleapis/calendar', () => ({
+  calendar: vi.fn(() => ({
+    events: {
+      list: vi.fn()
+    },
+    calendarList: {
+      get: vi.fn()
+    }
+  }))
 }));
 
 describe('ListEventsHandler JSON String Handling', () => {
@@ -60,7 +58,7 @@ describe('ListEventsHandler JSON String Handling', () => {
         })
       }
     };
-    vi.mocked(google.calendar).mockReturnValue(mockCalendar);
+    vi.mocked(createCalendarClient).mockReturnValue(mockCalendar);
   });
 
   afterEach(() => {
@@ -183,7 +181,7 @@ describe('ListEventsHandler - Timezone Handling', () => {
         })
       }
     };
-    vi.mocked(google.calendar).mockReturnValue(mockCalendar);
+    vi.mocked(createCalendarClient).mockReturnValue(mockCalendar);
   });
 
   describe('convertToRFC3339 timezone interpretation', () => {

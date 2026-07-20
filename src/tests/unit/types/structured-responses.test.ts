@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { convertGoogleEventToStructured, StructuredEvent } from '../../../types/structured-responses.js';
-import { calendar_v3 } from 'googleapis';
+import { calendar_v3 } from '@googleapis/calendar';
 
 describe('structured-responses', () => {
   describe('convertGoogleEventToStructured', () => {

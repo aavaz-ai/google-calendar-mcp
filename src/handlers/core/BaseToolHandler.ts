@@ -1,7 +1,7 @@
 import { CallToolResult, McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { OAuth2Client } from "google-auth-library";
 import { GaxiosError } from 'gaxios';
-import { calendar_v3, google } from "googleapis";
+import { calendar as createCalendarClient, calendar_v3 } from "@googleapis/calendar";
 import { isBrokerBearerMode, isBrokerOAuthClient } from "../../auth/brokerBearer.js";
 import { getCredentialsProjectId } from "../../auth/utils.js";
 import { CalendarRegistry } from "../../services/CalendarRegistry.js";
@@ -524,7 +524,7 @@ Original error: ${errorMessage}`
             config.quotaProjectId = quotaProjectId;
         }
 
-        return google.calendar(config);
+        return createCalendarClient(config);
     }
 
     /**
