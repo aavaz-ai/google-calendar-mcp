@@ -1,19 +1,17 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ConflictDetectionService } from '../../../../services/conflict-detection/ConflictDetectionService.js';
 import { OAuth2Client } from 'google-auth-library';
-import { calendar_v3 } from 'googleapis';
+import { calendar_v3 } from '@googleapis/calendar';
 
 // Mock googleapis to intercept calendar.events.list calls
 const listMock = vi.fn();
 
-vi.mock('googleapis', () => ({
-  google: {
-    calendar: () => ({
-      events: {
-        list: listMock
-      }
-    })
-  }
+vi.mock('@googleapis/calendar', () => ({
+  calendar: () => ({
+    events: {
+      list: listMock
+    }
+  })
 }));
 
 describe('ConflictDetectionService - timezone normalization', () => {

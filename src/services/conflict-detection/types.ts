@@ -1,4 +1,4 @@
-import { calendar_v3 } from "googleapis";
+import { calendar_v3 } from "@googleapis/calendar";
 
 /**
  * Internal conflict info used by the conflict detection service.

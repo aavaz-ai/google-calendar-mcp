@@ -1,4 +1,4 @@
-import { calendar_v3 } from 'googleapis';
+import { calendar_v3 } from '@googleapis/calendar';
 import { createTimeObject } from '../../utils/datetime.js';
 
 export class RecurringEventHelpers {

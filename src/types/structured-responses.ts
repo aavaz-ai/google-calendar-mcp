@@ -1,4 +1,4 @@
-import { calendar_v3 } from 'googleapis';
+import { calendar_v3 } from '@googleapis/calendar';
 
 /**
  * Extended event type to include calendar ID and account ID for tracking source.

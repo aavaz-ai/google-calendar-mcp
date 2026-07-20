@@ -3,14 +3,12 @@ import { ListColorsHandler } from '../../../handlers/core/ListColorsHandler.js';
 import { OAuth2Client } from 'google-auth-library';
 
 // Mock the googleapis module
-vi.mock('googleapis', () => ({
-  google: {
-    calendar: vi.fn(() => ({
-      colors: {
-        get: vi.fn()
-      }
-    }))
-  },
+vi.mock('@googleapis/calendar', () => ({
+  calendar: vi.fn(() => ({
+    colors: {
+      get: vi.fn()
+    }
+  })),
   calendar_v3: {}
 }));
 

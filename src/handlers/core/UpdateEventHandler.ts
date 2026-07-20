@@ -2,7 +2,7 @@ import { CallToolResult, McpError, ErrorCode } from "@modelcontextprotocol/sdk/t
 import { OAuth2Client } from "google-auth-library";
 import { UpdateEventInput } from "../../tools/registry.js";
 import { BaseToolHandler } from "./BaseToolHandler.js";
-import { calendar_v3 } from 'googleapis';
+import { calendar_v3 } from '@googleapis/calendar';
 import { RecurringEventHelpers, RecurringEventError, RECURRING_EVENT_ERRORS } from './RecurringEventHelpers.js';
 import { ConflictDetectionService } from "../../services/conflict-detection/index.js";
 import { createTimeObject } from "../../utils/datetime.js";

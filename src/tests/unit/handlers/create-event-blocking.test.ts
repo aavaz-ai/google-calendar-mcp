@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CreateEventHandler } from '../../../handlers/core/CreateEventHandler.js';
 import { OAuth2Client } from 'google-auth-library';
-import { calendar_v3 } from 'googleapis';
+import { calendar_v3 } from '@googleapis/calendar';
 import { CONFLICT_DETECTION_CONFIG } from '../../../services/conflict-detection/config.js';
 import { CalendarRegistry } from '../../../services/CalendarRegistry.js';
 

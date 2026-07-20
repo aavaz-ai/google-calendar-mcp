@@ -6,10 +6,8 @@ const state = vi.hoisted(() => ({
   calendarList: vi.fn()
 }));
 
-vi.mock('googleapis', () => ({
-  google: {
-    calendar: state.calendar
-  }
+vi.mock('@googleapis/calendar', () => ({
+  calendar: state.calendar
 }));
 
 import {

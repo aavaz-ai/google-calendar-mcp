@@ -3,14 +3,12 @@ import { ListCalendarsHandler } from '../../../handlers/core/ListCalendarsHandle
 import { OAuth2Client } from 'google-auth-library';
 
 // Mock the googleapis module
-vi.mock('googleapis', () => ({
-  google: {
-    calendar: vi.fn(() => ({
-      calendarList: {
-        list: vi.fn()
-      }
-    }))
-  },
+vi.mock('@googleapis/calendar', () => ({
+  calendar: vi.fn(() => ({
+    calendarList: {
+      list: vi.fn()
+    }
+  })),
   calendar_v3: {}
 }));
 

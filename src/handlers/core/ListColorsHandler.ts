@@ -1,7 +1,7 @@
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { OAuth2Client } from "google-auth-library";
 import { BaseToolHandler } from "./BaseToolHandler.js";
-import { calendar_v3 } from "googleapis";
+import { calendar_v3 } from "@googleapis/calendar";
 import { createStructuredResponse } from "../../utils/response-builder.js";
 import { ListColorsResponse } from "../../types/structured-responses.js";
 

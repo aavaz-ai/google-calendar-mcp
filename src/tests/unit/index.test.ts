@@ -20,27 +20,25 @@ vi.mock('google-auth-library', () => ({
 }));
 
 // Mock googleapis
-vi.mock('googleapis', () => ({
-  google: {
-    calendar: vi.fn().mockReturnValue({
-      calendarList: {
-        list: vi.fn(),
-        get: vi.fn()
-      },
-      events: {
-        list: vi.fn(),
-        insert: vi.fn(),
-        patch: vi.fn(),
-        delete: vi.fn()
-      },
-      colors: {
-        get: vi.fn()
-      },
-      freebusy: {
-        query: vi.fn()
-      }
-    })
-  }
+vi.mock('@googleapis/calendar', () => ({
+  calendar: vi.fn().mockReturnValue({
+    calendarList: {
+      list: vi.fn(),
+      get: vi.fn()
+    },
+    events: {
+      list: vi.fn(),
+      insert: vi.fn(),
+      patch: vi.fn(),
+      delete: vi.fn()
+    },
+    colors: {
+      get: vi.fn()
+    },
+    freebusy: {
+      query: vi.fn()
+    }
+  })
 }));
 
 // Mock TokenManager
@@ -78,8 +76,8 @@ describe('Google Calendar MCP Server', () => {
   describe('Tool Handlers', () => {
     it('should handle list-calendars tool correctly', async () => {
       const handler = new ListCalendarsHandler();
-      const { google } = await import('googleapis');
-      const mockCalendarApi = google.calendar('v3');
+      const { calendar: createCalendarClient } = await import('@googleapis/calendar');
+      const mockCalendarApi = createCalendarClient('v3');
 
       // Mock the API response
       (mockCalendarApi.calendarList.list as any).mockResolvedValue({
@@ -149,8 +147,8 @@ describe('Google Calendar MCP Server', () => {
 
     it('should handle create-event tool with valid arguments', async () => {
       const handler = new CreateEventHandler();
-      const { google } = await import('googleapis');
-      const mockCalendarApi = google.calendar('v3');
+      const { calendar: createCalendarClient } = await import('@googleapis/calendar');
+      const mockCalendarApi = createCalendarClient('v3');
 
       const mockEventArgs = {
         calendarId: 'primary',
@@ -203,8 +201,8 @@ describe('Google Calendar MCP Server', () => {
 
     it('should use calendar default timezone when timeZone is not provided', async () => {
       const handler = new CreateEventHandler();
-      const { google } = await import('googleapis');
-      const mockCalendarApi = google.calendar('v3');
+      const { calendar: createCalendarClient } = await import('@googleapis/calendar');
+      const mockCalendarApi = createCalendarClient('v3');
 
       const mockEventArgs = {
         calendarId: 'primary',
@@ -240,8 +238,8 @@ describe('Google Calendar MCP Server', () => {
 
     it('should handle timezone-aware datetime strings correctly', async () => {
       const handler = new CreateEventHandler();
-      const { google } = await import('googleapis');
-      const mockCalendarApi = google.calendar('v3');
+      const { calendar: createCalendarClient } = await import('@googleapis/calendar');
+      const mockCalendarApi = createCalendarClient('v3');
 
       const mockEventArgs = {
         calendarId: 'primary',
@@ -277,8 +275,8 @@ describe('Google Calendar MCP Server', () => {
 
     it('should handle list-events tool correctly', async () => {
       const handler = new ListEventsHandler();
-      const { google } = await import('googleapis');
-      const mockCalendarApi = google.calendar('v3');
+      const { calendar: createCalendarClient } = await import('@googleapis/calendar');
+      const mockCalendarApi = createCalendarClient('v3');
 
       const listEventsArgs = {
         calendarId: 'primary',

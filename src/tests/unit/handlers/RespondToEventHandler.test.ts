@@ -1,22 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { RespondToEventHandler } from '../../../handlers/core/RespondToEventHandler.js';
 import { OAuth2Client } from 'google-auth-library';
-import { google } from 'googleapis';
+import { calendar as createCalendarClient } from '@googleapis/calendar';
 
 // Mock the googleapis module
-vi.mock('googleapis', () => ({
-  google: {
-    calendar: vi.fn(() => ({
-      events: {
-        get: vi.fn(),
-        patch: vi.fn()
-      },
-      calendarList: {
-        list: vi.fn(),
-        get: vi.fn()
-      }
-    }))
-  },
+vi.mock('@googleapis/calendar', () => ({
+  calendar: vi.fn(() => ({
+    events: {
+      get: vi.fn(),
+      patch: vi.fn()
+    },
+    calendarList: {
+      list: vi.fn(),
+      get: vi.fn()
+    }
+  })),
   calendar_v3: {}
 }));
 
@@ -52,7 +50,7 @@ describe('RespondToEventHandler', () => {
       }
     };
 
-    vi.mocked(google.calendar).mockReturnValue(mockCalendar);
+    vi.mocked(createCalendarClient).mockReturnValue(mockCalendar);
   });
 
   describe('runTool', () => {

@@ -2,7 +2,7 @@ import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { OAuth2Client } from "google-auth-library";
 import { CreateEventsInput } from "../../tools/registry.js";
 import { BaseToolHandler } from "./BaseToolHandler.js";
-import type { calendar_v3 } from 'googleapis';
+import type { calendar_v3 } from '@googleapis/calendar';
 import { createTimeObject } from "../../utils/datetime.js";
 import { createStructuredResponse } from "../../utils/response-builder.js";
 import { CreateEventsResponse, convertGoogleEventToStructured, StructuredEvent } from "../../types/structured-responses.js";

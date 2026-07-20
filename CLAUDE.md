@@ -211,7 +211,7 @@ MCP tools return errors as successful responses with error content, not as throw
 
 ## Google Calendar API
 
-- **Version**: v3 (`googleapis` package)
+- **Version**: v3 (`@googleapis/calendar` package)
 - **Timeout**: 3 seconds per API call (configured in `BaseToolHandler`)
 - **Rate Limiting**: Google Calendar API has quotas - integration tests may hit limits
 - **Scope Required**: `https://www.googleapis.com/auth/calendar` (full calendar access, superset of `calendar.events`)

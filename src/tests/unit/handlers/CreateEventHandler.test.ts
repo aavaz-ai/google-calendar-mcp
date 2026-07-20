@@ -6,14 +6,12 @@ import { CalendarRegistry } from '../../../services/CalendarRegistry.js';
 import { BROKER_BEARER_ENV } from '../../../auth/brokerBearer.js';
 
 // Mock the googleapis module
-vi.mock('googleapis', () => ({
-  google: {
-    calendar: vi.fn(() => ({
-      events: {
-        insert: vi.fn()
-      }
-    }))
-  },
+vi.mock('@googleapis/calendar', () => ({
+  calendar: vi.fn(() => ({
+    events: {
+      insert: vi.fn()
+    }
+  })),
   calendar_v3: {}
 }));
 

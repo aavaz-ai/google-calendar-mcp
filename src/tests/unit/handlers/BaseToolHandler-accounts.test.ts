@@ -10,8 +10,8 @@ const providerState = vi.hoisted(() => ({
   getCredentialsProjectId: vi.fn()
 }));
 
-vi.mock('googleapis', () => ({
-  google: { calendar: providerState.calendar }
+vi.mock('@googleapis/calendar', () => ({
+  calendar: providerState.calendar
 }));
 
 vi.mock('../../../auth/utils.js', () => ({
