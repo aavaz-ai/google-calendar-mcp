@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.2.0](https://github.com/aavaz-ai/google-calendar-mcp/compare/v0.1.0...v0.2.0) (2026-07-20)
+
+
+### Features
+
+* **auth:** add broker-supplied Google Calendar bearer mode ([7cc44af](https://github.com/aavaz-ai/google-calendar-mcp/commit/7cc44aff498f414dc5631fd1cb9f80bf408fc3da))
+
+
+### Bug Fixes
+
+* **auth:** sanitize broker-mode provider failures ([51f13f2](https://github.com/aavaz-ai/google-calendar-mcp/commit/51f13f2cd91836092e166d67e62febb39264755e))
+* **datetime:** support fractional RFC3339 timestamps ([d7efeff](https://github.com/aavaz-ai/google-calendar-mcp/commit/d7efeff5b307bb3bf91a7665970f4d4ba6b6252c))
+* **events:** forward update notification preferences ([11d9571](https://github.com/aavaz-ai/google-calendar-mcp/commit/11d957188c576acea742859e995c300417484594))
+
+
+### Performance Improvements
+
+* **deps:** use scoped Google Calendar client ([698bd5e](https://github.com/aavaz-ai/google-calendar-mcp/commit/698bd5edc29cc1cdb49c3ab578de97dab46d93f2))
+
 ## [2.6.2](https://github.com/nspady/google-calendar-mcp/compare/v2.6.1...v2.6.2) (2026-06-01)
 
 
