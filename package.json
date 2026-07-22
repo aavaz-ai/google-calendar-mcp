@@ -1,6 +1,6 @@
 {
   "name": "@enterpret/google-calendar-mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Enterpret fork of the Google Calendar MCP server with broker-supplied OAuth bearer support",
   "type": "module",
   "main": "build/index.js",
